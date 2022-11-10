@@ -6,12 +6,6 @@ edition = "2021"
 [lib]
 name = "wormhole"
 
-
-[profile.release]
-opt-level = 3
-lto = "thin"
-
-
 [dependencies]
 borsh = "0.9.3"
 bstr = "0.2.17"
