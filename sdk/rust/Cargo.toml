@@ -1,6 +1,7 @@
 [workspace]
 members = [
-    "core/"
+    "core/",
+    "serde_wormhole",
 ]
 
 [profile.release]
