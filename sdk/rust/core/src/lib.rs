@@ -8,107 +8,60 @@
 //! - Data types for Wormhole primitives such as GuardianSets and signatures.
 //! - Verification Primitives for securely checking payloads.
 
-#![deny(warnings)]
-#![deny(unused_results)]
+// #![deny(warnings)]
+// #![deny(unused_results)]
 
-use {
-    borsh::{
-        BorshDeserialize,
-        BorshSerialize,
-    },
-    nom::{
-        error::ErrorKind,
-        multi::fill,
-        number::{
-            complete::{
-                u16,
-                u8,
-            },
-            Endianness,
-        },
-        IResult,
-    },
-};
+use serde::{Deserialize, Serialize};
 
-#[macro_use]
-pub mod error;
-pub mod chain;
+mod arraystring;
+mod chain;
+pub mod core;
+pub mod nft;
+mod serde_array;
+pub mod token;
 pub mod vaa;
 
-pub use {
-    chain::*,
-    error::*,
-    vaa::*,
-};
+pub use {chain::Chain, vaa::Vaa};
 
 /// The `GOVERNANCE_EMITTER` is a special address Wormhole guardians trust to observe governance
-/// actions from.
-pub const GOVERNANCE_EMITTER: [u8; 32] =
-    hex_literal::hex!("0000000000000000000000000000000000000000000000000000000000000004");
+/// actions from. The value is "0000000000000000000000000000000000000000000000000000000000000004".
+pub const GOVERNANCE_EMITTER: Address = Address([
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04,
+]);
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct GuardianAddress(pub [u8; 20]);
+
+/// Wormhole specifies addresses as 32 bytes. Addresses that are shorter, for example 20 byte
+/// Ethereum addresses, are left zero padded to 32.
+#[derive(
+    Serialize, Deserialize, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
+pub struct Address(pub [u8; 32]);
+
+/// Wormhole specifies an amount as a uint256 encoded in big-endian order.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Amount(pub [u8; 32]);
 
 /// A `GuardianSet` is a versioned set of keys that can sign Wormhole messages.
-#[derive(BorshDeserialize, BorshSerialize, Default)]
-pub struct GuardianSet {
-    /// The version of the guardian set.
-    pub index: u32,
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct GuardianSetInfo {
+    /// The set of guardians public keys, in Ethereum's compressed format.
+    pub addresses: Vec<GuardianAddress>,
 
     /// How long after a GuardianSet change before this set is expired.
-    pub expires: u32,
-
-    /// The set of guardians public keys, in Ethereum's compressed format.
-    pub addresses: Vec<[u8; 20]>,
+    #[serde(skip)]
+    pub expiration_time: u64,
 }
 
-impl GuardianSet {
+impl GuardianSetInfo {
     pub fn quorum(&self) -> usize {
-        ((self.addresses.len() * 10 / 3) * 2) / 10 + 1
+        // allow quorum of 0 for testing purposes...
+        if self.addresses.is_empty() {
+            0
+        } else {
+            ((self.addresses.len() * 10 / 3) * 2) / 10 + 1
+        }
     }
-}
-
-/// Helper method that attempts to parse and truncate UTF-8 from a byte stream. This is useful when
-/// the wire data is expected to contain UTF-8 that is either already truncated, or needs to be,
-/// while still maintaining the ability to render.
-///
-/// This should be used to parse any Text-over-Wormhole fields that are meant to be human readable.
-pub(crate) fn parse_fixed_utf8<T: AsRef<[u8]>, const N: usize>(s: T) -> Option<String> {
-    use {
-        bstr::ByteSlice,
-        std::io::{
-            Cursor,
-            Read,
-        },
-    };
-
-    // Read Bytes.
-    let mut cursor = Cursor::new(s.as_ref());
-    let mut buffer = vec![0u8; N];
-    cursor.read_exact(&mut buffer).ok()?;
-    buffer.retain(|&c| c != 0);
-
-    // Attempt UTF-8 Decoding. Stripping invalid Unicode characters (0xFFFD).
-    let mut buffer: Vec<char> = buffer.chars().collect();
-    buffer.retain(|&c| c != '\u{FFFD}');
-
-    Some(buffer.iter().collect())
-}
-
-/// Using nom, parse a fixed array of bytes without any allocation. Useful for parsing addresses,
-/// signatures, identifiers, etc.
-#[inline]
-pub(crate) fn parse_fixed<const S: usize>(input: &[u8]) -> IResult<&[u8], [u8; S]> {
-    let mut buffer = [0u8; S];
-    let (i, _) = fill(u8, &mut buffer)(input)?;
-    Ok((i, buffer))
-}
-
-/// Parse a Chain ID, which is a 16 bit numeric ID. The mapping of network to ID is defined by the
-/// Wormhole standard.
-#[inline]
-pub(crate) fn parse_chain(input: &[u8]) -> IResult<&[u8], Chain> {
-    let (i, chain) = u16(Endianness::Big)(input)?;
-    Ok((
-        i,
-        Chain::try_from(chain)
-            .map_err(|_| nom::Err::Error(nom::error_position!(i, ErrorKind::NoneOf)))?,
-    ))
 }

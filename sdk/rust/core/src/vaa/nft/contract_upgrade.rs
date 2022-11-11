@@ -2,17 +2,13 @@
 
 use {
     super::Action,
-    crate::{
-        vaa::parse_fixed,
-        GovHeader,
-    },
+    crate::{vaa::parse_fixed, GovHeader},
     nom::IResult,
 };
 
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct ContractUpgrade {
-    pub header:       GovHeader,
+    pub header: GovHeader,
     pub new_contract: [u8; 32],
 }
 

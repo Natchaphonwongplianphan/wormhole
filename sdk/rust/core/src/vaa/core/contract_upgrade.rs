@@ -2,17 +2,13 @@
 
 use {
     super::Action,
-    crate::{
-        vaa::parse_fixed,
-        GovHeader,
-    },
+    crate::{vaa::parse_fixed, GovHeader},
     nom::IResult,
 };
 
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct ContractUpgrade {
-    pub header:       GovHeader,
+    pub header: GovHeader,
     pub new_contract: [u8; 32],
 }
 
@@ -30,23 +26,13 @@ impl ContractUpgrade {
     }
 }
 
-
 #[cfg(test)]
 mod testing {
     use {
         super::*,
-        crate::{
-            Chain,
-            VAA,
-        },
-        byteorder::{
-            BigEndian,
-            ReadBytesExt,
-        },
-        std::io::{
-            Cursor,
-            Read,
-        },
+        crate::{Chain, VAA},
+        byteorder::{BigEndian, ReadBytesExt},
+        std::io::{Cursor, Read},
     };
 
     // Original ContractUpgrade Parsing Code. Used to compare current code to old for parity.
@@ -59,7 +45,7 @@ mod testing {
         let mut addr = [0u8; 32];
         c.read_exact(&mut addr)?;
         Ok(ContractUpgrade {
-            header:       GovHeader {
+            header: GovHeader {
                 module,
                 action,
                 target: target.into(),

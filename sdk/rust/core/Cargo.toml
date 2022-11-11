@@ -7,19 +7,16 @@ edition = "2021"
 name = "wormhole"
 
 [dependencies]
-borsh = "0.9.3"
-bstr = "0.2.17"
-byteorder = "1.4.3"
+anyhow = "1"
+bstr = { version = "1", features = ["serde"] }
 hex = "0.4.3"
 hex-literal = "0.3.4"
-nom = { version="7", default-features=false, features=["alloc"] }
-primitive-types = { version="0.11", default-features=false }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+serde_wormhole = "0.1.0"
 sha3 = "0.10.4"
 thiserror = "1.0.34"
 
 [dev-dependencies]
 base64 = "0.13.0"
-byteorder = "*"
+byteorder = "1.4.3"
 hex = "*"
-strum = "*"
-strum_macros = "*"

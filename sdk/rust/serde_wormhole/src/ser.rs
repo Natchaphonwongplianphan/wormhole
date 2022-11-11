@@ -232,7 +232,6 @@ impl<'a, W: Write> ser::Serializer for &'a mut Serializer<W> {
         Ok(self)
     }
 
-    #[inline]
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
         let len = len
             .ok_or(Error::UnknownSequenceLength)
